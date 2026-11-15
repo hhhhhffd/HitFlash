@@ -11,6 +11,7 @@
 <p>
 <a href="https://github.com/hhhhhffd/HitFlash/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/hhhhhffd/HitFlash?style=flat-square"></a>
 <a href="https://github.com/hhhhhffd/HitFlash/releases"><img alt="Release downloads" src="https://img.shields.io/github/downloads/hhhhhffd/HitFlash/total?style=flat-square"></a>
+<a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/github/license/hhhhhffd/HitFlash?style=flat-square"></a>
 </p>
 <p><a href="https://github.com/hhhhhffd/HitFlash/releases">Download</a> · <a href="#architecture">Architecture</a> · <a href="#build">Build</a></p>
 <img src="docs/media/preview.png" alt="HitFlash preview">
@@ -92,4 +93,4 @@ On Windows, run `gradlew.bat build`. The output is `build/libs/hitflash-1.0.2.ja
 
 ## License
 
-Not specified; license terms are TBD.
+Licensed under the [MIT License](LICENSE).
