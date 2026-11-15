@@ -6,8 +6,7 @@
     "ClientPacketListenerMixin",
     "LivingEntityRenderStateMixin",
     "LivingEntityRendererMixin",
-    "OverlayTextureMixin",
-    "OutlineRenderTypeInvoker"
+    "LevelRendererMixin"
   ],
   "injectors": { "defaultRequire": 1 }
 }

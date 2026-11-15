@@ -3,7 +3,7 @@
   "id": "hitflash",
   "version": "${version}",
   "name": "HitFlash",
-  "description": "Client-side, depth-tested visual feedback for confirmed melee hits.",
+  "description": "Client-side vanilla-style glow for confirmed melee hits.",
   "environment": "client",
   "entrypoints": { "client": ["dev.hitflash.client.HitFlashClient"] },
   "mixins": ["hitflash.client.mixins.json"],

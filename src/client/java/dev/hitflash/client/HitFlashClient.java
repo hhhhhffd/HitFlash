@@ -8,13 +8,14 @@ import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundDamageEventPacket;
 import net.minecraft.world.damagesource.DamageTypes;
-import net.minecraft.world.entity.Avatar;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,13 +34,11 @@ public final class HitFlashClient implements ClientModInitializer {
     private static final Map<UUID, Flash> FLASHES = new HashMap<>();
     private static HitFlashConfig config = HitFlashConfig.DEFAULT;
     private static ClientLevel trackedLevel;
-    private static final long HURT_TINT_NANOS = TimeUnit.MILLISECONDS.toNanos(600);
 
     private static final class Flash {
         final long time;
         final long duration;
         final int id;
-        boolean expired;
 
         Flash(long time, long duration, int id) {
             this.time = time;
@@ -80,12 +79,9 @@ public final class HitFlashClient implements ClientModInitializer {
         syncWorld(client.level);
         long now = System.nanoTime();
         FLASHES.values().removeIf(flash -> {
-            long elapsed = now - flash.time;
-            if (!flash.expired && elapsed >= flash.duration) {
-                flash.expired = true;
-                if (QA) LOGGER.info("[hitflash-qa] expire target={}", flash.id);
-            }
-            return elapsed >= Math.max(flash.duration, HURT_TINT_NANOS);
+            if (now - flash.time < flash.duration) return false;
+            if (QA) LOGGER.info("[hitflash-qa] expire target={}", flash.id);
+            return true;
         });
     }
 
@@ -115,31 +111,43 @@ public final class HitFlashClient implements ClientModInitializer {
             living.getId(), living.getType(), config.hex(), config.durationMs());
     }
 
-    /** The lower word is an optional vanilla overlay override; upper word is custom outline ARGB. */
-    public static long modelEffectFor(LivingEntity entity) {
-        final long noEffect = 0xFFFFFFFFL;
-        if (!config.enabled() || FLASHES.isEmpty() || entity.isInvisible()) return noEffect;
+    public static int outlineFor(LivingEntity entity) {
+        if (!config.enabled() || FLASHES.isEmpty() || entity.isInvisible() || entity.isSpectator()) return 0;
         Flash flash = FLASHES.get(entity.getUUID());
-        if (flash == null || flash.id != entity.getId()) return noEffect;
-
-        long elapsed = System.nanoTime() - flash.time;
-        boolean avatar = entity instanceof Avatar;
-        if (elapsed >= flash.duration) {
-            // Don't switch back to vanilla red at the end of a short custom flash on non-player models.
-            return !avatar && elapsed < HURT_TINT_NANOS ? (long) OverlayTexture.NO_OVERLAY : noEffect;
-        }
-        float remaining = 1.0f - (float) elapsed / (float) flash.duration;
-        if (avatar) {
-            // Keep the standard damage flash, but add an independent color outline to the skin only.
-            int alpha = Math.clamp(Math.round(340.0f * remaining), 1, 255);
-            int rgba = (alpha << 24) | config.rgb();
-            return (Integer.toUnsignedLong(rgba) << 32) | noEffect;
-        }
+        if (flash == null || flash.id != entity.getId() || System.nanoTime() - flash.time >= flash.duration) return 0;
         Minecraft mc = Minecraft.getInstance();
-        ((FlashPalette) mc.gameRenderer.overlayTexture()).hitflash$ensureColor(config.rgb());
-        // Hold full intensity during the first 25%, then fade.
-        int step = Math.clamp(Math.round(20.0f * remaining), 1, 15);
-        return OverlayTexture.pack(step, 0);
+        if (mc.level == null || !isClearlyVisible(mc, entity)) return 0;
+        // The stock outline pass expects a solid silhouette mask and softens the
+        // edges itself. It ignores per-vertex alpha; don't dim the selected RGB.
+        return 0xFF000000 | config.rgb();
+    }
+
+    private static boolean isClearlyVisible(Minecraft mc, LivingEntity target) {
+        Vec3 eye = mc.gameRenderer.getMainCamera().position();
+        double targetX = target.getX(), targetZ = target.getZ();
+        double bottomY = target.getBoundingBox().minY;
+        double height = target.getBbHeight();
+        double deltaX = targetX - eye.x, deltaZ = targetZ - eye.z;
+        double horizontal = Math.hypot(deltaX, deltaZ);
+        double sideX = 0, sideZ = 0;
+        if (horizontal > 1.0e-4) {
+            double widthFactor = target.getBbWidth() * 0.42 / horizontal;
+            sideX = -deltaZ * widthFactor;
+            sideZ = deltaX * widthFactor;
+        }
+        double shouldersY = bottomY + 0.66 * height;
+        // The stock outline composites over the scene. Suppress our mask if any
+        // of the center/shoulder samples are blocked rather than reveal a fully
+        // hidden or plainly partially hidden target.
+        return clearRay(mc, eye, targetX, bottomY + height * 0.88, targetZ)
+            && clearRay(mc, eye, targetX, bottomY + height * 0.16, targetZ)
+            && clearRay(mc, eye, targetX + sideX, shouldersY, targetZ + sideZ)
+            && clearRay(mc, eye, targetX - sideX, shouldersY, targetZ - sideZ);
+    }
+
+    private static boolean clearRay(Minecraft mc, Vec3 eye, double x, double y, double z) {
+        return mc.level.clip(new ClipContext(eye, new Vec3(x, y, z),
+            ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, mc.getCameraEntity())).getType() == HitResult.Type.MISS;
     }
 
     private static int setColor(FabricClientCommandSource source, String text) {

@@ -1,14 +1,9 @@
 package dev.hitflash.client.mixin;
 
-import com.mojang.blaze3d.vertex.PoseStack;
 import dev.hitflash.client.FlashRenderState;
 import dev.hitflash.client.HitFlashClient;
-import dev.hitflash.client.outline.WhiteOutline;
-import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.LivingEntityRenderer;
-import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
-import net.minecraft.client.renderer.state.CameraRenderState;
 import net.minecraft.world.entity.LivingEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -24,23 +19,7 @@ abstract class LivingEntityRendererMixin {
         at = @At("TAIL")
     )
     private void hitflash$extract(LivingEntity entity, LivingEntityRenderState state, float tickDelta, CallbackInfo callback) {
-        ((FlashRenderState) state).hitflash$setEffect(HitFlashClient.modelEffectFor(entity));
-    }
-
-    @Inject(
-        method = "submit(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/CameraRenderState;)V",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/client/renderer/SubmitNodeCollector;submitModel(Lnet/minecraft/client/model/Model;Ljava/lang/Object;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/rendertype/RenderType;IIILnet/minecraft/client/renderer/texture/TextureAtlasSprite;ILnet/minecraft/client/renderer/feature/ModelFeatureRenderer$CrumblingOverlay;)V"
-        )
-    )
-    private void hitflash$submitOutline(LivingEntityRenderState state, PoseStack pose,
-                                       SubmitNodeCollector collector, CameraRenderState camera,
-                                       CallbackInfo callback) {
-        if (state instanceof AvatarRenderState avatar) {
-            int color = ((FlashRenderState) state).hitflash$outline();
-            if (color != 0) WhiteOutline.submit(avatar, pose, collector, color);
-        }
+        ((FlashRenderState) state).hitflash$setOutline(HitFlashClient.outlineFor(entity));
     }
 
     @ModifyArgs(
@@ -50,8 +29,11 @@ abstract class LivingEntityRendererMixin {
             target = "Lnet/minecraft/client/renderer/SubmitNodeCollector;submitModel(Lnet/minecraft/client/model/Model;Ljava/lang/Object;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/rendertype/RenderType;IIILnet/minecraft/client/renderer/texture/TextureAtlasSprite;ILnet/minecraft/client/renderer/feature/ModelFeatureRenderer$CrumblingOverlay;)V"
         )
     )
-    private void hitflash$bodyOnly(Args args) {
-        int overlay = ((FlashRenderState) args.get(1)).hitflash$overlay();
-        if (overlay >= 0) args.set(5, overlay);
+    private void hitflash$outlineOnlyTheBaseModel(Args args) {
+        // Use the very same mask and post-chain as vanilla Glowing, but don't touch
+        // the entity render state's vanilla outlineColor. Feature renderers (armor,
+        // shield, held item and cape) continue to get the original vanilla value.
+        int customColor = ((FlashRenderState) args.get(1)).hitflash$outline();
+        if (customColor != 0 && (int) args.get(8) == 0) args.set(8, customColor);
     }
 }

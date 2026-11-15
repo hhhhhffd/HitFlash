@@ -1,8 +1,7 @@
 package dev.hitflash.client;
 
-/** Per-frame visual state attached to the vanilla model render state. */
+/** The hit color is kept separate from the vanilla entity-wide outline flag. */
 public interface FlashRenderState {
-    int hitflash$overlay();
     int hitflash$outline();
-    void hitflash$setEffect(long effect);
+    void hitflash$setOutline(int color);
 }
