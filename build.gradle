@@ -1,5 +1,5 @@
 plugins {
-    id 'net.fabricmc.fabric-loom-remap' version "${loom_version}"
+    id 'fabric-loom' version "${loom_version}"
 }
 loom {
     splitEnvironmentSourceSets()
@@ -10,11 +10,18 @@ loom {
         }
     }
 }
+repositories {
+    maven { url = uri("https://maven.terraformersmc.com/releases") }
+}
+
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     mappings loom.officialMojangMappings()
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+    modCompileOnly "com.terraformersmc:modmenu:17.0.1"
+    productionRuntimeMods "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+    productionRuntimeMods "com.terraformersmc:modmenu:17.0.1"
 }
 processResources {
     inputs.property 'version', project.version
@@ -22,7 +29,21 @@ processResources {
 }
 tasks.withType(JavaCompile).configureEach { options.release = 21 }
 java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
     withSourcesJar()
+}
+
+tasks.withType(AbstractArchiveTask).configureEach {
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+}
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
+
+tasks.register('runExactClient', net.fabricmc.loom.task.prod.ClientProductionRunTask) {
+    javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(21) }
+    runDir.set(file(providers.gradleProperty('qaClientDir').getOrElse('build/qa-client')))
+    useXVFB.set(false)
+    jvmArgs.addAll('-Xms512m', '-Xmx2G', '-Dhitflash.qa=true')
+    programArgs.addAll('--username', providers.gradleProperty('qaUsername').getOrElse('HitFlashQA'),
+            '--accessToken', '0', '--version', minecraft_version)
 }

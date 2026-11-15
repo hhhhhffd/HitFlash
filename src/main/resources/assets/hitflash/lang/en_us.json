@@ -1,9 +1,14 @@
 {
-  "hitflash.status": "HitFlash: %s | %s | %s ms | %s",
-  "hitflash.on": "on",
-  "hitflash.off": "off",
-  "hitflash.players": "players only",
-  "hitflash.all": "all living targets",
-  "hitflash.bad_hex": "Use a six-digit color, e.g. /hitflash color #FFFFFF",
-  "hitflash.save_failed": "Could not save hitflash.json. Settings have not changed."
+  "hitflash.menu.hint": "Outline on confirmed melee hits",
+  "hitflash.menu.enabled": "HitFlash: %s",
+  "hitflash.menu.targets": "Targets: %s",
+  "hitflash.menu.targets.players": "Players only",
+  "hitflash.menu.targets.all": "All living",
+  "hitflash.menu.duration": "Duration: %s ms",
+  "hitflash.menu.color.open": "Outline color: %s",
+  "hitflash.menu.color.title": "HitFlash outline color",
+  "hitflash.menu.color.hex": "Six-digit HEX color",
+  "hitflash.menu.color.apply": "Use this color",
+  "hitflash.menu.reset": "Reset defaults",
+  "hitflash.menu.save_failed": "Could not save hitflash.json"
 }

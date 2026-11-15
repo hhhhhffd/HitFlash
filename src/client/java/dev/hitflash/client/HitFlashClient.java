@@ -1,14 +1,9 @@
 package dev.hitflash.client;
 
-import com.mojang.brigadier.arguments.IntegerArgumentType;
-import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
-import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundDamageEventPacket;
 import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.entity.LivingEntity;
@@ -25,8 +20,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.argument;
-import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal;
 
 public final class HitFlashClient implements ClientModInitializer {
     static final Logger LOGGER = LoggerFactory.getLogger("HitFlash");
@@ -52,20 +45,6 @@ public final class HitFlashClient implements ClientModInitializer {
         if (QA) LOGGER.info("[hitflash-qa] init color={} duration={} enabled={} playersOnly={}",
             config.hex(), config.durationMs(), config.enabled(), config.playersOnly());
         ClientTickEvents.END_CLIENT_TICK.register(HitFlashClient::tick);
-        ClientCommandRegistrationCallback.EVENT.register((dispatcher, access) -> dispatcher.register(
-            literal("hitflash")
-                .executes(ctx -> info(ctx.getSource()))
-                .then(literal("color").then(argument("hex", StringArgumentType.greedyString())
-                    .executes(ctx -> setColor(ctx.getSource(), StringArgumentType.getString(ctx, "hex")))))
-                .then(literal("duration").then(argument("ms", IntegerArgumentType.integer(HitFlashConfig.MIN_MS, HitFlashConfig.MAX_MS))
-                    .executes(ctx -> update(ctx.getSource(), new HitFlashConfig(config.enabled(), config.rgb(),
-                        IntegerArgumentType.getInteger(ctx, "ms"), config.playersOnly())))))
-                .then(literal("on").executes(ctx -> enable(ctx.getSource(), true)))
-                .then(literal("off").executes(ctx -> enable(ctx.getSource(), false)))
-                .then(literal("targets")
-                    .then(literal("players").executes(ctx -> targets(ctx.getSource(), true)))
-                    .then(literal("all").executes(ctx -> targets(ctx.getSource(), false))))
-        ));
     }
 
     private static void syncWorld(ClientLevel level) {
@@ -150,43 +129,22 @@ public final class HitFlashClient implements ClientModInitializer {
             ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, mc.getCameraEntity())).getType() == HitResult.Type.MISS;
     }
 
-    private static int setColor(FabricClientCommandSource source, String text) {
-        try {
-            return update(source, new HitFlashConfig(config.enabled(), HitFlashConfig.parseHex(text), config.durationMs(), config.playersOnly()));
-        } catch (IllegalArgumentException invalid) {
-            source.sendError(Component.translatable("hitflash.bad_hex"));
-            return 0;
-        }
+    static HitFlashConfig settings() {
+        return config;
     }
 
-    private static int enable(FabricClientCommandSource source, boolean enabled) {
-        return update(source, new HitFlashConfig(enabled, config.rgb(), config.durationMs(), config.playersOnly()));
-    }
-
-    private static int targets(FabricClientCommandSource source, boolean playersOnly) {
-        return update(source, new HitFlashConfig(config.enabled(), config.rgb(), config.durationMs(), playersOnly));
-    }
-
-    private static int update(FabricClientCommandSource source, HitFlashConfig settings) {
+    static boolean applySettings(HitFlashConfig settings) {
+        if (settings.equals(config)) return true;
         try {
             settings.save();
-        } catch (IOException error) {
+        } catch (IOException | RuntimeException error) {
             LOGGER.warn("Could not save client settings", error);
-            source.sendError(Component.translatable("hitflash.save_failed"));
-            return 0;
+            return false;
         }
         config = settings;
         FLASHES.clear();
         if (QA) LOGGER.info("[hitflash-qa] config color={} duration={} enabled={} playersOnly={}",
             config.hex(), config.durationMs(), config.enabled(), config.playersOnly());
-        return info(source);
-    }
-
-    private static int info(FabricClientCommandSource source) {
-        source.sendFeedback(Component.translatable("hitflash.status",
-            Component.translatable(config.enabled() ? "hitflash.on" : "hitflash.off"),
-            config.hex(), config.durationMs(),
-            Component.translatable(config.playersOnly() ? "hitflash.players" : "hitflash.all")));
-        return 1;
+        return true;
     }
 }

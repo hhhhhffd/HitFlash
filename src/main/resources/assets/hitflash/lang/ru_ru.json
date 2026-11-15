@@ -1,9 +1,14 @@
 {
-  "hitflash.status": "HitFlash: %s | %s | %s мс | %s",
-  "hitflash.on": "вкл.",
-  "hitflash.off": "выкл.",
-  "hitflash.players": "только игроки",
-  "hitflash.all": "все живые цели",
-  "hitflash.bad_hex": "Введи цвет из шести цифр и букв, например /hitflash color #FFFFFF",
-  "hitflash.save_failed": "Не удалось сохранить hitflash.json. Настройки не изменились."
+  "hitflash.menu.hint": "Свечение при подтверждённом ударе",
+  "hitflash.menu.enabled": "HitFlash: %s",
+  "hitflash.menu.targets": "Цели: %s",
+  "hitflash.menu.targets.players": "Только игроки",
+  "hitflash.menu.targets.all": "Все живые",
+  "hitflash.menu.duration": "Длительность: %s мс",
+  "hitflash.menu.color.open": "Цвет обводки: %s",
+  "hitflash.menu.color.title": "Цвет обводки HitFlash",
+  "hitflash.menu.color.hex": "Цвет HEX из шести символов",
+  "hitflash.menu.color.apply": "Выбрать цвет",
+  "hitflash.menu.reset": "Сбросить",
+  "hitflash.menu.save_failed": "Не удалось сохранить hitflash.json"
 }
