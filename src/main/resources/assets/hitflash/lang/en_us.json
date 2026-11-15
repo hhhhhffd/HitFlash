@@ -1,0 +1,9 @@
+{
+  "hitflash.status": "HitFlash: %s | %s | %s ms | %s",
+  "hitflash.on": "on",
+  "hitflash.off": "off",
+  "hitflash.players": "players only",
+  "hitflash.all": "all living targets",
+  "hitflash.bad_hex": "Use a six-digit color, e.g. /hitflash color #FFFFFF",
+  "hitflash.save_failed": "Could not save hitflash.json. Settings have not changed."
+}

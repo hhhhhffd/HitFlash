@@ -1,0 +1,9 @@
+{
+  "hitflash.status": "HitFlash: %s | %s | %s мс | %s",
+  "hitflash.on": "вкл.",
+  "hitflash.off": "выкл.",
+  "hitflash.players": "только игроки",
+  "hitflash.all": "все живые цели",
+  "hitflash.bad_hex": "Введи цвет из шести цифр и букв, например /hitflash color #FFFFFF",
+  "hitflash.save_failed": "Не удалось сохранить hitflash.json. Настройки не изменились."
+}
